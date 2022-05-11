@@ -42,6 +42,8 @@ def plot3d(x,y,z,name,axis,inv_ax):
         plt.gca().invert_xaxis()
     elif inv_ax == 'y':
         plt.gca().invert_yaxis()
+    plt.colorbar(label="Misfit", orientation="horizontal")
+    plt.gca().set_aspect('auto')
     plt.savefig(name)
     plt.close()
     #plt.show()
@@ -98,6 +100,31 @@ def slip_dip(ds,indexes):
     inv_ax = 'y'
     plot3d(x,y,z,name,axis,inv_ax)
 
+##############################
+
+###Dip vs. Strike, best slip at each coordinate
+def dip_strike_minmisfits(ds,indexes):
+    x_aux=ds['h'][:]
+    x=[]
+    for i in range(len(x_aux)):
+        rad = math.acos(x_aux[i])
+        x.append(math.degrees(rad))
+    x=np.array(x)
+    y=ds['kappa'][:]
+    z=[]
+    for i in range(len(x)):
+        for j in range(len(y)):
+            z_aux = []
+            for k in range(len(ds['sigma'][:])):
+                z_aux.append(ds['__xarray_dataarray_variable__'][indexes[0]][indexes[1]][indexes[2]][i][k][j][0])
+            index_min = np.argmin(z_aux)
+            z.append(ds['__xarray_dataarray_variable__'][indexes[0]][indexes[1]][indexes[2]][i][index_min][j][0])
+
+    name='DipVsStrike_minimum_misfit.pdf'
+    axis = ['Dip','Strike','Minimun mistif at each dip-strike pair']
+    inv_ax = 'x'
+    plot3d(x,y,z,name,axis,inv_ax)
+
 ####Slip vs. Strike, best dip at each coordinate
 def slip_strike_minmisfit(ds,indexes):
     x=ds['sigma'][:]
@@ -111,9 +138,32 @@ def slip_strike_minmisfit(ds,indexes):
             index_min = np.argmin(z_aux)
             z.append(ds['__xarray_dataarray_variable__'][indexes[0]][indexes[1]][indexes[2]][i][j][index_min][0])
 
-    axis = ['Slip','Strike','Minimun mistif at each slip-strike par']
+    axis = ['Slip','Strike','Minimun mistif at each slip-strike pair']
     name='SlipVsStrike_minimum_misfit.pdf'
     inv_ax = 'n'
+    plot3d(x,y,z,name,axis,inv_ax)
+
+
+####Slip vs. Dip, best strike at each coordinate
+def slip_dip_minmisfits(ds,indexes):
+    x=ds['sigma'][:]
+    y_aux=ds['h'][:]
+    y=[]
+    for i in range(len(y_aux)):
+        rad = math.acos(y_aux[i])
+        y.append(math.degrees(rad))
+    y=np.array(y)
+    z=[]
+    for i in range(len(x)):
+        for j in range(len(y)):
+            z_aux = []
+            for k in range(len(ds['kappa'][:])):
+                z_aux.append(ds['__xarray_dataarray_variable__'][indexes[0]][indexes[1]][indexes[2]][k][j][i][0])
+            index_min = np.argmin(z_aux)
+            z.append(ds['__xarray_dataarray_variable__'][indexes[0]][indexes[1]][indexes[2]][index_min][j][i][0])
+    name='SlipVsDip_strike_minimum_misfit.pdf'
+    axis = ['Slip','Dip','Minimun mistif at each slip-dip pair']
+    inv_ax = 'y'
     plot3d(x,y,z,name,axis,inv_ax)
 
 
@@ -123,7 +173,13 @@ ds = nc.Dataset(f_netcdf)
 G = read_json(f_json)
 indexes = find_index(ds,G)
 
+
+##Planes:
+dip_strike(ds,indexes)
+slip_strike(ds,indexes)
+slip_dip(ds,indexes)
+
+##Surfaces:
+dip_strike_minmisfits(ds,indexes)
 slip_strike_minmisfit(ds,indexes)
-#dip_strike(ds,indexes)
-#slip_strike(ds,indexes)
-#slip_dip(ds,indexes)
+slip_dip_minmisfits(ds,indexes)
