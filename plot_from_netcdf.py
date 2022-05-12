@@ -1,6 +1,8 @@
 import netCDF4 as nc
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
 import math
 import json
 import sys
@@ -10,6 +12,7 @@ import sys
 #https://stackoverflow.com/questions/176918/finding-the-index-of-an-item-in-a-list
 #https://towardsdatascience.com/read-netcdf-data-with-python-901f7ff61648
 #https://stackoverflow.com/questions/2051744/reverse-y-axis-in-pyplot
+#https://stackoverflow.com/questions/32461452/python-plot-3d-surface-with-colormap-as-4th-dimension-function-of-x-y-z
 
 def read_json(f_json):
     f = open(f_json)
@@ -33,7 +36,7 @@ def find_index(ds,G):
 def plot3d(x,y,z,name,axis,inv_ax):
     z = np.array(z)
     X, Y = np.meshgrid(x, y)
-    Z = z.reshape(40,40)
+    Z = z.reshape(len(x),len(y))
 
     plt.pcolor(X, Y, Z)
     plt.xlabel(axis[0])
@@ -48,6 +51,36 @@ def plot3d(x,y,z,name,axis,inv_ax):
     plt.savefig(name)
     plt.close()
     #plt.show()
+
+def plot4d(x,y,z,free_values,axis4d,name4d):
+    
+    c = np.array(z)
+    C = c.reshape(len(x),len(y))
+    zet = np.array(free_values)
+
+    X,Y = np.meshgrid(x,y)
+    Z = zet.reshape(len(x),len(y))
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111,projection = '3d')
+
+    scamap = plt.cm.ScalarMappable(cmap='viridis')
+    fcolors = scamap.to_rgba(C)
+    ax.plot_surface(X, Y, Z, facecolors=fcolors, cmap='inferno',shade=False)
+    fig.colorbar(scamap,label="Misfit")
+    
+    ax.set_xlabel(axis4d[0])
+    ax.set_ylabel(axis4d[1])
+    ax.set_zlabel(axis4d[2])
+    plt.title(axis4d[3])
+    ax.view_init(45,330)
+    plt.savefig(name4d)
+    #ax.view_init(45,60)
+    #ax.plot_surface(X, Y, Z,facecolors=cm.jet(C), shade=False)
+    plt.show()
+
+
+
 
 def h2d(h_values):
     dip=[]
@@ -131,6 +164,7 @@ def make_figure_surface(ds,indexes,x_axis,y_axis,free):
         y=ds[y_axis][:]
 
     z=[]
+    free_values = []
 
     for i in range(len(x)):
         for j in range(len(y)):
@@ -151,15 +185,27 @@ def make_figure_surface(ds,indexes,x_axis,y_axis,free):
                     
             index_min = np.argmin(z_aux)
             
+            if free == 'h':
+                free_value_aux = ds[free][index_min]
+                rad = math.acos(free_value_aux)
+                free_values.append(math.degrees(rad))
+            else:
+                free_values.append(ds[free][index_min])
+            
             if x_axis == 'h' and y_axis == 'kappa' and free == 'sigma':
                 z.append(ds['__xarray_dataarray_variable__'][indexes[0]][indexes[1]][indexes[2]][i][index_min][j][0])
             elif x_axis == 'sigma' and y_axis == 'kappa' and free == 'h':
                 z.append(ds['__xarray_dataarray_variable__'][indexes[0]][indexes[1]][indexes[2]][i][j][index_min][0])
             elif x_axis == 'sigma' and y_axis == 'h' and free == 'kappa':
                 z.append(ds['__xarray_dataarray_variable__'][indexes[0]][indexes[1]][indexes[2]][index_min][j][i][0])
-
+                    
+          
     axis = [fault_dict[x_axis],fault_dict[y_axis],'Minimun mistif at each {}-{} pair'.format(fault_dict[x_axis],fault_dict[y_axis])]
+    axis4d = [fault_dict[x_axis],fault_dict[y_axis],fault_dict[free],'Minimun mistif surface at each {},{}, and {}'.format(fault_dict[x_axis],fault_dict[y_axis],fault_dict[free])]
+    
     name='{}_vs_{}_minimum_misfit.pdf'.format(fault_dict[x_axis],fault_dict[y_axis])
+    name4d ='{}_{}_{}_minimum_misfit_surface.pdf'.format(fault_dict[x_axis],fault_dict[y_axis],fault_dict[free])
+    
     if x_axis == 'h':
         inv_ax = 'x'
     elif y_axis == 'h':
@@ -168,6 +214,8 @@ def make_figure_surface(ds,indexes,x_axis,y_axis,free):
         inv_ax ='n'
 
     plot3d(x,y,z,name,axis,inv_ax)
+    print('Making 4D plot')
+    #plot4d(x,y,z,free_values,axis4d,name4d)
 
 f_netcdf = '20140826115645000DC_misfit.nc'
 f_json = '20140826115645000DC_solution.json'
@@ -182,16 +230,16 @@ space=['sigma','kappa','h']
 
 ##FIGURES PLANES
 ##i=dip,j=strike,k=slip
-make_figure_plane(ds,indexes,space[2],space[1],space[0])
+#make_figure_plane(ds,indexes,space[2],space[1],space[0])
 ##x=slip,y=strike,free=dip
-make_figure_plane(ds,indexes,space[0],space[1],space[2])
+#make_figure_plane(ds,indexes,space[0],space[1],space[2])
 ##i=slip,j=dip,k=strike
-make_figure_plane(ds,indexes,space[0],space[2],space[1])
+#make_figure_plane(ds,indexes,space[0],space[2],space[1])
 
 ##FIGURES SURFACES
-##i=dip,j=strike,k=slip
-make_figure_surface(ds,indexes,space[2],space[1],space[0])
+##x=dip,y=strike,k=slip
+#make_figure_surface(ds,indexes,space[2],space[1],space[0])
 ##x=slip,y=strike,free=dip
-make_figure_surface(ds,indexes,space[0],space[1],space[2])
+#make_figure_surface(ds,indexes,space[0],space[1],space[2])
 ##i=slip,j=dip,k=strike
 make_figure_surface(ds,indexes,space[0],space[2],space[1])
