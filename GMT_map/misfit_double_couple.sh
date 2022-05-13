@@ -1,3 +1,9 @@
+#!/bin/sh
+################################################################
+#Script for plotting the focal mechanisms Uncertainties. The X and Y axis could be strike, dip or rake.
+#Felix Rodriguez Cardozo
+#May 12th 2022
+##psmeca_file_dip_strike_surface_slip.txt
 #gmt makecpt -T3.8471359451573206e-09/1.0003204348985174e-08/0.1e-09 -Crainbow  > misfit1.cpt
 #gmt makecpt -T3.8471359451573206e-09/9.994456999898963e-09/0.1e-09 -Crainbow  > misfit2.cpt
 #gmt makecpt -T3.8471359451573206e-09/7.975461338251326e-09/0.1e-09 -Crainbow  > misfit3.cpt
