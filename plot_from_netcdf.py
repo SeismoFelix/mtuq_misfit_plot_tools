@@ -13,6 +13,7 @@ import sys
 #https://towardsdatascience.com/read-netcdf-data-with-python-901f7ff61648
 #https://stackoverflow.com/questions/2051744/reverse-y-axis-in-pyplot
 #https://stackoverflow.com/questions/32461452/python-plot-3d-surface-with-colormap-as-4th-dimension-function-of-x-y-z
+#https://jakevdp.github.io/PythonDataScienceHandbook/04.12-three-dimensional-plotting.html
 
 def read_json(f_json):
     f = open(f_json)
@@ -33,6 +34,54 @@ def find_index(ds,G):
     print(ds['__xarray_dataarray_variable__'][indexes[0]][indexes[1]][indexes[2]][indexes[3]][indexes[4]][indexes[5]][0])
     return(indexes)
 
+
+def make_data_gmt(x,y,z,free_values,axis4d):
+    ##http://gmt.soest.hawaii.edu/doc/5.3.2/supplements/meca/psmeca.html
+    ##lon lat depth strike dip slip mag 0 0
+    z=np.array(z)
+    free_values = np.array(free_values)
+    Z = z.reshape(len(x),len(y))
+    FREE = free_values.reshape(len(x),len(y))
+    
+    c1 = x
+    c2 = y
+    c3 = '7.0'
+    c7 = '4.6'
+    
+    open_file = open('psmeca_file_{}_{}_surface_{}.txt'.format(axis4d[0],axis4d[1],axis4d[2]),'w')
+    header ='##lon lat depth strike dip slip mag 0 0\n'
+    open_file.write(header)
+    for i in range(len(x)):
+        for j in range(len(y)):
+            ##x=dip,y=strike,k=slip
+            if axis4d[0] == 'dip' and axis4d[1] =='strike' and axis4d[2] == 'slip':
+                c4 = y[j]
+                c5 = x[i]
+                c6 = FREE[i][j]
+            ##x=slip,y=strike,free=dip
+            elif axis4d[0] == 'slip' and axis4d[1] =='strike' and axis4d[2] == 'dip':
+                c4 = y[j]
+                c5 = FREE[i][j]
+                c6 = x[i]
+            ##i=slip,j=dip,k=strike
+            elif axis4d[0] == 'slip' and axis4d[1] =='dip' and axis4d[2] == 'strike':
+                c4 = FREE[i][j]
+                c5 = y[j]
+                c6 = x[i]
+            line = '{} {} {} {} {} {} {} 0 0\n'.format(c1[i],c2[j],c3,c4,c5,c6,c7)
+            open_file.write(line)
+    open_file.close()
+    
+    open_file = open('color_misfit_{}_{}_surface_{}.txt'.format(axis4d[0],axis4d[1],axis4d[2]),'w')
+    for i in range(len(x)):
+        for j in range(len(y)):
+            line = '{} {} {} {}\n'.format(x[i],y[j],Z[j][i],0.4)
+            open_file.write(line)
+    open_file.close()
+
+    print(np.min(z))
+    print(np.max(z))
+                     
 def plot3d(x,y,z,name,axis,inv_ax):
     z = np.array(z)
     X, Y = np.meshgrid(x, y)
@@ -78,9 +127,6 @@ def plot4d(x,y,z,free_values,axis4d,name4d):
     #ax.view_init(45,60)
     #ax.plot_surface(X, Y, Z,facecolors=cm.jet(C), shade=False)
     plt.show()
-
-
-
 
 def h2d(h_values):
     dip=[]
@@ -213,9 +259,10 @@ def make_figure_surface(ds,indexes,x_axis,y_axis,free):
     else:
         inv_ax ='n'
 
-    plot3d(x,y,z,name,axis,inv_ax)
-    print('Making 4D plot')
-    #plot4d(x,y,z,free_values,axis4d,name4d)
+    #plot3d(x,y,z,name,axis,inv_ax)
+    #print('Making 4D plot')
+    plot4d(x,y,z,free_values,axis4d,name4d)
+    make_data_gmt(x,y,z,free_values,axis4d)
 
 f_netcdf = '20140826115645000DC_misfit.nc'
 f_json = '20140826115645000DC_solution.json'
@@ -238,8 +285,8 @@ space=['sigma','kappa','h']
 
 ##FIGURES SURFACES
 ##x=dip,y=strike,k=slip
-#make_figure_surface(ds,indexes,space[2],space[1],space[0])
+make_figure_surface(ds,indexes,space[2],space[1],space[0])
 ##x=slip,y=strike,free=dip
 #make_figure_surface(ds,indexes,space[0],space[1],space[2])
 ##i=slip,j=dip,k=strike
-make_figure_surface(ds,indexes,space[0],space[2],space[1])
+#make_figure_surface(ds,indexes,space[0],space[2],space[1])
