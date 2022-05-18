@@ -45,7 +45,7 @@ def make_data_gmt(x,y,z,free_values,axis4d):
     
     c1 = x
     c2 = y
-    c3 = '7.0'
+    #c3 = '7.0' Will be the misfit
     c7 = '4.6'
     
     open_file = open('psmeca_file_{}_{}_surface_{}.txt'.format(axis4d[0],axis4d[1],axis4d[2]),'w')
@@ -55,17 +55,20 @@ def make_data_gmt(x,y,z,free_values,axis4d):
         for j in range(len(y)):
             ##x=dip,y=strike,k=slip
             if axis4d[0] == 'dip' and axis4d[1] =='strike' and axis4d[2] == 'slip':
+                c3 = Z[j][i]
                 c4 = y[j]
                 c5 = x[i]
-                c6 = FREE[i][j]
+                c6 = FREE[j][i]
             ##x=slip,y=strike,free=dip
             elif axis4d[0] == 'slip' and axis4d[1] =='strike' and axis4d[2] == 'dip':
+                c3 = Z[j][i]
                 c4 = y[j]
-                c5 = FREE[i][j]
+                c5 = FREE[j][i]
                 c6 = x[i]
             ##i=slip,j=dip,k=strike
             elif axis4d[0] == 'slip' and axis4d[1] =='dip' and axis4d[2] == 'strike':
-                c4 = FREE[i][j]
+                c3 = Z[j][i]
+                c4 = FREE[j][i]
                 c5 = y[j]
                 c6 = x[i]
             line = '{} {} {} {} {} {} {} 0 0\n'.format(c1[i],c2[j],c3,c4,c5,c6,c7)
@@ -124,8 +127,6 @@ def plot4d(x,y,z,free_values,axis4d,name4d):
     plt.title(axis4d[3])
     ax.view_init(45,330)
     plt.savefig(name4d)
-    #ax.view_init(45,60)
-    #ax.plot_surface(X, Y, Z,facecolors=cm.jet(C), shade=False)
     plt.show()
 
 def h2d(h_values):
@@ -261,7 +262,8 @@ def make_figure_surface(ds,indexes,x_axis,y_axis,free):
 
     #plot3d(x,y,z,name,axis,inv_ax)
     #print('Making 4D plot')
-    plot4d(x,y,z,free_values,axis4d,name4d)
+    #plot4d(x,y,z,free_values,axis4d,name4d)
+    print('Making GMT-psmeca input files')
     make_data_gmt(x,y,z,free_values,axis4d)
 
 f_netcdf = '20140826115645000DC_misfit.nc'
@@ -287,6 +289,6 @@ space=['sigma','kappa','h']
 ##x=dip,y=strike,k=slip
 make_figure_surface(ds,indexes,space[2],space[1],space[0])
 ##x=slip,y=strike,free=dip
-#make_figure_surface(ds,indexes,space[0],space[1],space[2])
+make_figure_surface(ds,indexes,space[0],space[1],space[2])
 ##i=slip,j=dip,k=strike
-#make_figure_surface(ds,indexes,space[0],space[2],space[1])
+make_figure_surface(ds,indexes,space[0],space[2],space[1])
